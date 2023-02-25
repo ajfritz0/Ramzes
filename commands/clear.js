@@ -1,14 +1,14 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
+const { SlashCommandBuilder } = require('discord.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('clear')
 		.setDescription('Clears the playlist queue'),
+	voiceChannelRequired: true,
 	async execute(interaction) {
-		const mpCollection = interaction.client.MusicPlayerCollection;
-		const mp = mpCollection.get(interaction.guild.id);
-		if (mp === null || mp == undefined) return interaction.reply('Nothing to clear');
-		mp.clearPlaylist();
-		return interaction.reply('Playlist cleared');
+		interaction.client.mp.clearPlaylist();
+		return interaction.reply('Playlist Cleared')
+			.then(() => setTimeout(() => interaction.deleteReply(), 5000))
+			.catch(console.error);
 	},
 };

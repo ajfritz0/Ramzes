@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
+const { SlashCommandBuilder } = require('discord.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -8,9 +8,9 @@ module.exports = {
 			return option.setName('num')
 				.setDescription('Track Number');
 		}),
+	voiceChannelRequired: true,
 	async execute(interaction) {
-		const mp = interaction.client.MusicPlayerCollection.get(interaction.guild.id);
-		if (mp === null || mp === undefined) return interaction.reply('You have not added any music');
+		const mp = interaction.client.mp;
 		const trackNum = interaction.options.getInteger('num');
 
 		if (trackNum == null || trackNum == undefined) {
@@ -31,9 +31,8 @@ module.exports = {
 				});
 			}
 		}
-		return interaction.reply({
-			content: 'Playing music',
-			ephemeral: true,
-		});
+		return interaction.reply('Playing next track')
+			.then(() => setTimeout(() => interaction.deleteReply(), 5000))
+			.catch(console.error);
 	},
 };

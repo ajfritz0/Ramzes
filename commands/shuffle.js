@@ -1,16 +1,16 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
+const { SlashCommandBuilder } = require('discord.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('shuffle')
 		.setDescription('Shuffles the playlist queue'),
+	voiceChannelRequired: true,
 	async execute(interaction) {
-		const mp = interaction.client.MusicPlayerCollection.get(interaction.guild.id);
-		if (mp === null || mp === undefined) return interaction.reply('You have not added any music');
-
+		const mp = interaction.client.mp;
 		mp.shuffle();
-		return interaction.reply('Music Shuffled').then((() => {
-			setTimeout(() => interaction.deleteReply(), 10 * 1000);
-		}));
+
+		return interaction.reply('Playlist has been shuffled')
+			.then(() => setTimeout(() => interaction.deleteReply(), 5000))
+			.catch(console.error);
 	},
 };

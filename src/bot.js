@@ -1,31 +1,40 @@
-const { Client, Collection, Intents } = require('discord.js');
+const { Events, Client, Collection, GatewayIntentBits } = require('discord.js');
 const { token } = require('../config/config.json');
 const fs = require('fs');
+const MusicPlayer = require('./MusicPlayer');
+const validate = require('./validateMemberVoiceState');
 
-const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_VOICE_STATES] });
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates] });
 
+client.mp = new MusicPlayer();
 client.commands = new Collection();
-client.MusicPlayerCollection = new Collection();
 const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
+const commandData = [];
 
 for (const file of commandFiles) {
 	console.log(`Loading Module ${file}`);
-	const command = require(`./command/${file}`);
+	const command = require(`../commands/${file}`);
 	client.commands.set(command.data.name, command);
+	commandData.push(command.data);
 }
 
-client.once('ready', () => {
+client.once(Events.ClientReady, () => {
 	console.log('Ready!');
 });
 
-client.on('interactionCreate', async interaction => {
-	if (!interaction.isCommand()) return;
+client.on(Events.InteractionCreate, async interaction => {
+	if (!interaction.isChatInputCommand()) return;
 
 	const command = client.commands.get(interaction.commandName);
 
 	const start = (new Date()).getTime();
 	try {
-		await command(interaction);
+		if (command.voiceChannelRequired) {
+			if (validate(interaction)) await command.execute(interaction);
+		}
+		else {
+			await command.execute(interaction);
+		}
 	}
 	catch (error) {
 		console.error(error);
@@ -35,4 +44,10 @@ client.on('interactionCreate', async interaction => {
 	console.log(`Execution finished in ${deltaTime}ms`);
 });
 
-client.login(token);
+require('./deploy')(commandData)
+	.then(() => {
+		client.login(token);
+	})
+	.catch(err => {
+		console.error(err);
+	});

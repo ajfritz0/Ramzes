@@ -1,16 +1,17 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
+const { SlashCommandBuilder } = require('discord.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('pause')
 		.setDescription('Pause playing audio'),
+	voiceChannelRequired: true,
 	async execute(interaction) {
-		const mpCollection = interaction.client.MusicPlayerCollection;
-		const mp = mpCollection.get(interaction.guild.id);
-		if (mp === null || mp === undefined) return interaction.reply('You have not added music');
+		const mp = interaction.client.mp;
+		if (mp.isPaused()) return interaction.reply({ content: 'Audio is already paused', ephemeral: true });
+		mp.player.pause();
 
-		mp.togglePause();
-		interaction.reply('Paused playback');
-		setTimeout(() => interaction.deleteReply(), 10 * 1000);
+		return interaction.reply('Pausing Playback')
+			.then(() => setTimeout(() => interaction.deleteReply(), 5000))
+			.catch(console.error);
 	},
 };

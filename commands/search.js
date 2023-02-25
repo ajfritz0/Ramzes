@@ -1,5 +1,4 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
-const { EmbedBuilder } = require('discord.js');
+const { EmbedBuilder, SlashCommandBuilder } = require('discord.js');
 const ytsr = require('ytsr');
 
 module.exports = {
@@ -35,7 +34,10 @@ module.exports = {
 		}
 		catch (e) {
 			console.error(e);
-			return interaction.reply('Sorry, an unexpected error occurred');
+			return interaction.reply({
+				content: 'Sorry, an unexpected error occurred.\nPlease try again later',
+				ephemeral: true,
+			});
 		}
 	},
 };

@@ -9,6 +9,7 @@ const {
 	createAudioPlayer,
 	createAudioResource,
 	joinVoiceChannel,
+	getVoiceConnection,
 } = require('@discordjs/voice');
 
 const toTimeString = (seconds) => {
@@ -24,12 +25,12 @@ const toTimeString = (seconds) => {
 class MusicPlayer {
 	constructor() {
 		this.player = createAudioPlayer();
-		this.connection = null;
 		this.voiceChannelIdleTimer = null;
 		this.musicPlayerIdleTimer = null;
 		this.stream = null;
 		this.playlist = new PlaylistManager();
 		this.isStopped = true;
+		this.doLoop = false;
 		this.textChannel = null;
 		this.lastSentMessage = null;
 
@@ -53,7 +54,7 @@ class MusicPlayer {
 		this.player.on('error', console.error);
 	}
 
-	async add(url) {
+	async add(url, bAppend = true) {
 		let insertionIndex = -1;
 		if (ytdl.validateURL(url)) {
 			try {
@@ -68,8 +69,14 @@ class MusicPlayer {
 					thumbnail: videoDetails.author.thumbnails[0].url,
 				};
 
-				insertionIndex = this.playlist.playlist.length;
-				this.playlist.addItem(trackItem);
+				if (bAppend) {
+					insertionIndex = this.playlist.playlist.length;
+					this.playlist.addItem(trackItem);
+				}
+				else {
+					insertionIndex = this.playlist.readHead;
+					this.playlist.playlist.splice(insertionIndex, 0, trackItem);
+				}
 			}
 			catch (error) {
 				console.error(error);
@@ -91,14 +98,30 @@ class MusicPlayer {
 						thumbnail: video?.bestThumbnail?.url,
 					});
 				});
-				if (arr.length > 0) insertionIndex = this.playlist.playlist.length;
-				this.playlist.addItems(arr);
+
+				if (arr.length > 0) {
+					if (bAppend) {
+						insertionIndex = this.playlist.playlist.length;
+						this.playlist.addItems(arr);
+					}
+					else {
+						insertionIndex = this.playlist.readHead;
+						this.playlist.playlist.splice(insertionIndex, 0, ...arr);
+					}
+				}
 			}
 			catch (error) {
 				console.error(error);
 			}
 		}
 		return insertionIndex;
+	}
+
+	removeTrack(id) {
+		if (id < 1 || id > this.playlist.playlist.length) return false;
+
+		this.playlist.removeItem(id - 1);
+		return true;
 	}
 
 	async play(video) {
@@ -128,20 +151,16 @@ class MusicPlayer {
 
 	playNext() {
 		if (this.isEmpty()) return false;
-		const video = this.playlist.selectNext();
+		let video = this.playlist.selectNext(this.doLoop);
 		if (video == null) {
-			if (!this.isPlaying()) {
-				if (this.isStopped) {
-					this.playlist.readHead = -1;
-					this.isStopped = false;
-					this.playNext();
-					return true;
-				}
-				else {
-					this.isStopped = true;
-				}
+			if ((!this.isPlaying() && this.isStopped) || this.isPlaying()) {
+				video = this.playlist.selectNext(true);
+				this.isStopped = false;
 			}
-			return false;
+			else {
+				this.isStopped = true;
+				return false;
+			}
 		}
 		this.play(video);
 		return true;
@@ -157,7 +176,7 @@ class MusicPlayer {
 
 	togglePause() {
 		if (this.player.state.status === AudioPlayerStatus.Idle) return;
-		if (this.player.state.status === AudioPlayerStatus.Paused) this.player.unpause();
+		if (this.isPaused()) this.player.unpause();
 		else this.player.pause();
 	}
 
@@ -171,22 +190,24 @@ class MusicPlayer {
 	}
 
 	joinVC(chId, gId, adap) {
-		if (this.connection !== null) return console.log('Voice connection already exists\n-----');
-		this.voiceChannelIdleTimer = setTimeout(() => this.destroy(), 5 * 60 * 1000);
-		this.connection = joinVoiceChannel({
+		let conn = getVoiceConnection(gId);
+		if (conn) {
+			conn.destroy();
+		}
+		conn = joinVoiceChannel({
 			channelId: chId,
 			guildId: gId,
 			adapterCreator: adap,
 		});
 
-		this.connection.on('stateChange', (oldState, newState) => {
+		conn.on('stateChange', (oldState, newState) => {
+			console.log(newState);
 			if (newState.status == 'destroyed') {
-				if (this.connection === null) return;
-				this.stop();
-				this.connection = null;
+				console.log('Voice Connection destroyed');
 			}
 		});
-		this.connection.subscribe(this.player);
+		conn.subscribe(this.player);
+		this.voiceChannelIdleTimer = setTimeout(() => this.destroy(), 5 * 60 * 1000);
 	}
 
 	createStream(url) {
@@ -196,9 +217,9 @@ class MusicPlayer {
 
 	destroy() {
 		this.stop();
-		if (this.connection !== null) {
-			this.connection.destroy();
-			this.connection = null;
+		const conn = getVoiceConnection();
+		if (conn) {
+			conn.destroy();
 		}
 	}
 
@@ -228,20 +249,22 @@ class MusicPlayer {
 	}
 
 	showUpcoming() {
-		const index = this.playlist.readHead;
-		const truncatedTrackList = this.playlist.playlist.slice(index, index + 5);
+		const readHead = this.playlist.readHead;
+		const startPos = (readHead - 5 < 0) ? 0 : readHead - 5;
+		const truncatedTrackList = this.playlist.playlist.slice(startPos, readHead + 5);
 		const maxTitleLength = 35;
+		const currentTrackTitle = this.playlist.playlist[readHead].title;
 
 		const str = truncatedTrackList.reduce((prev, curr, idx) => {
 			const title = (curr.title.length < maxTitleLength) ? curr.title : curr.title.slice(0, maxTitleLength - 3) + '...';
 			const durr = toTimeString(parseInt(curr.duration));
-			const line = `${index + idx}. [${title}](${durr})`;
-			if (idx == 0) return prev + `**${line}**\n`;
+			const line = `${startPos + idx}. [${title}](${durr})`;
+			if (curr.title == currentTrackTitle) return prev + `**${line}**\n`;
 			return prev + line + '\n';
 		}, '```md\n');
 
-		if (this.playlist.playlist.length > index + 5) {
-			return str + `...${this.playlist.playlist.length - (index + 5)} more` + '```';
+		if (this.playlist.playlist.length > readHead + 5) {
+			return str + `...${this.playlist.playlist.length - (readHead + 5)} more` + '```';
 		}
 		else {
 			return str.trim() + '```';

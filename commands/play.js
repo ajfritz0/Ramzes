@@ -1,101 +1,128 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
-const MusicPlayer = require('../src/MusicPlayer');
+const { SlashCommandBuilder } = require('discord.js');
+const ytsr = require('ytsr');
 
+// when playing a url, it shoudl add the track to the queue in place, rather than at the end
 module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('play')
 		.setDescription('Play youtube audio')
-		.addStringOption(option =>
-			option.setName('url')
-				.setDescription('Link to youtube video'))
-		.addStringOption(option =>
-			option.setName('query')
-				.setDescription('A search query'))
-		.addIntegerOption(option =>
-			option.setName('index')
-				.setDescription('Play the Nth returned track when searching a query')),
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName('link')
+				.setDescription('Play audio via youtube url')
+				.addStringOption(option =>
+					option
+						.setName('url')
+						.setDescription('URL')
+						.setRequired(true),
+				),
+		)
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName('search')
+				.setDescription('Add audio via search')
+				.addStringOption(option =>
+					option
+						.setName('query')
+						.setDescription('Search Query')
+						.setRequired(true),
+				).addIntegerOption(option =>
+					option
+						.setName('id')
+						.setDescription('The ID of the video to add'),
+				),
+		),
 	async execute(interaction) {
-		const voice = interaction.guild.voiceStates.cache;
-		const author = interaction.member;
-		const voiceState = voice.get(author.id);
+		// first check if the bot is in a voice channel
+		// if not, join the voice channel associated with the user's interaction
+		const voiceStates = interaction.guild.voiceStates.cache;
+		const author = interaction.member.id;
+		const authorVoiceState = voiceStates.get(author);
+		const botVoiceState = voiceStates.get(interaction.client.user.id);
+		const mp = interaction.client.mp;
+		const subCommand = interaction.options.getSubcommand();
+
 		const url = interaction.options.getString('url');
-		const mpCollection = interaction.client.MusicPlayerCollection;
-		const guildId = interaction.guild.id;
-		const textChannel = interaction.channel;
-
-		if (!mpCollection.has(guildId)) mpCollection.set(guildId, new MusicPlayer());
-		const mp = mpCollection.get(guildId);
-
-		// check if the user is in a voice channel
-		if (voiceState === undefined || voiceState.channelId === null) {
-			await interaction.reply('You must be in a voice channel to use this command');
-			return;
-		}
-		const voiceChannelId = voiceState.channelId;
-		mp.joinVC(voiceChannelId, guildId, interaction.guild.voiceAdapterCreator);
+		const query = interaction.options.getString('query');
+		const id = interaction.options.getInteger('id');
 
 		await interaction.deferReply();
+		// I want to rework this section as well as the validate file
+		if (authorVoiceState === undefined || authorVoiceState.channelId === null) {
+			return interaction.editReply({
+				content: 'You must be in a voice channel to use this function',
+				ephemeral: true,
+			});
+		}
+		if (botVoiceState === undefined || botVoiceState.channelId === null) {
+			mp.joinVC(
+				authorVoiceState.channelId,
+				interaction.guild.id,
+				interaction.guild.voiceAdapterCreator,
+			);
+		}
+		else if (botVoiceState.channelId !== authorVoiceState.channelId) {
+			return interaction.editReply({
+				content: 'You are not in the correct voice channel',
+				ephemeral: true,
+			});
+		}
 
-		if (textChannel.type == 'GUILD_VOICE') mp.textChannel = interaction.guild.systemChannel;
-		else mp.textChannel = textChannel;
-		if (url !== null && url !== undefined) {
-			// if the playlist is empty or the music is stopped, queue and play
-			if (mp.isEmpty() || mp.isStopped) {
-				const index = await mp.add(url);
-				if (index == -1) {
-					return interaction.editReply({
-						ephemeral: true,
-						content: 'Not a valid youtube URL',
-					});
-				}
-				else {
-					const doesExist = mp.playTrack(index);
-					if (!doesExist) {
-						return interaction.editReply({
-							ephemeral: true,
-							content: 'Video does not exist',
-						});
-					}
-				}
-			}
-			// if music is currently playing, just add to the queue
-			else if (!mp.isStopped) {
-				const index = await mp.add(url);
-				if (index == -1) {
-					return interaction.editReply({
-						ephemeral: true,
-						content: 'Not a valid youtube LINK',
-					});
-				}
-				else {
-					return interaction.editReply({
-						ephemeral: true,
-						content: 'Track(s) added',
-					});
-				}
-			}
-		}
-		// if no url was provided, simply play whatever track in the queue is selected
-		else {
-			if (mp.isPaused()) {
-				mp.togglePause();
+		// eventually make this dynamic, so the text channnel changes
+		// when commands are made from other text channels
+		if (interaction.channel.type == 'GUILD_VOICE') mp.textChannel = interaction.guild.systemChannel;
+		else mp.textChannel = interaction.channel;
+
+		if (subCommand == 'link') {
+			const index = await mp.add(url, false);
+			if (index == -1) {
 				return interaction.editReply({
-					content: 'Unpaused',
-				}).then(msg => {
-					setTimeout(() => msg.delete(), 5 * 1000);
-				});
-			}
-			const doesExist = mp.playTrack();
-			if (doesExist == null) {
-				return interaction.editReply({
+					content: 'An unknown error has occurred.\nPlease try again later.',
 					ephemeral: true,
-					content: 'Video does not exist',
+				});
+			}
+			// once the track(s) are added, Play added tracks
+			mp.playTrack(index);
+			return interaction.editReply('Playing Audio')
+				.then(() => setTimeout(() => interaction.deleteReply(), 5000))
+				.catch(console.error);
+		}
+		else {
+			try {
+				const searchResults = await ytsr(query, {
+					limit: 20,
+				});
+				const filteredResults = searchResults.items.filter(value => {
+					if (value.type != 'video' || value?.isLive) return false;
+					return true;
+				}).slice(0, 10);
+
+				if (id && (id < 1 || id > 10)) {
+					return interaction.editReply({
+						content: 'The id provided is out of range',
+						ephemeral: true,
+					});
+				}
+				const trackSelected = (id) ? id - 1 : 0;
+				const index = await mp.add(filteredResults[trackSelected].url, false);
+				if (index == -1) {
+					return interaction.editReply({
+						content: 'An unknown error has occurred.\nPlease try again later.',
+						ephemeral: true,
+					});
+				}
+				mp.playTrack(index);
+				return interaction.editReply('Playing Audio')
+					.then(() => setTimeout(() => interaction.deleteReply(), 5000))
+					.catch(console.error);
+			}
+			catch (error) {
+				console.error(error);
+				return interaction.editReply({
+					content: 'An uknown error has occurred.\nPlease try again later.',
+					ephemeral: true,
 				});
 			}
 		}
-		return interaction.editReply({
-			ephemeral: true,
-			content: 'Playing music',
-		});
 	},
 };

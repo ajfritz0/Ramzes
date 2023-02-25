@@ -14,6 +14,10 @@ class PlaylistManager {
 		this.playlist.push(...items);
 	}
 
+	removeItem(idx) {
+		this.playlist.splice(idx, 1);
+	}
+
 	clear() {
 		delete this.playlist;
 		this.playlist = [];
@@ -28,9 +32,15 @@ class PlaylistManager {
 		return (this.playlist.length == 0);
 	}
 
-	selectNext() {
-		if (this.playlist.length == 0 || this.readHead >= this.playlist.length - 1) {
-			return null;
+	selectNext(bLoopback = false) {
+		if (this.playlist.length == 0) { return null; }
+		else if (this.readHead >= this.playlist.length - 1) {
+			if (bLoopback) {
+				this.readHead = -1;
+			}
+			else {
+				return null;
+			}
 		}
 		this.readHead += 1;
 		return this.playlist[this.readHead];
