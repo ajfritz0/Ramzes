@@ -33,6 +33,7 @@ class MusicPlayer {
 		this.doLoop = false;
 		this.textChannel = null;
 		this.lastSentMessage = null;
+		this.guildId = null;
 
 		const setTimer = () => {
 			this.voiceChannelIdleTimer = setTimeout(this.destroy.bind(this), 5 * 60 * 1000);
@@ -200,8 +201,9 @@ class MusicPlayer {
 			adapterCreator: adap,
 		});
 
+		this.guildId = gId;
+
 		conn.on('stateChange', (oldState, newState) => {
-			console.log(newState);
 			if (newState.status == 'destroyed') {
 				console.log('Voice Connection destroyed');
 			}
@@ -217,7 +219,7 @@ class MusicPlayer {
 
 	destroy() {
 		this.stop();
-		const conn = getVoiceConnection();
+		const conn = getVoiceConnection(this.guildId);
 		if (conn) {
 			conn.destroy();
 		}
