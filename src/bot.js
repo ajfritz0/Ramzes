@@ -44,6 +44,21 @@ client.on(Events.InteractionCreate, async interaction => {
 	console.log(`Execution finished in ${deltaTime}ms`);
 });
 
+client.on(Events.VoiceStateUpdate, (oldState, newState) => {
+	const botId = client.user.id;
+	const botVoiceState = newState.guild.voiceStates.cache.get(botId);
+	if (!botVoiceState || !botVoiceState.channelId) return;
+
+	const voiceChannelMembers = botVoiceState.channel.members;
+	for (const [memberId] of voiceChannelMembers) {
+		if (memberId == botId) continue;
+		client.mp.stopLonelyTimer();
+		return;
+	}
+
+	client.mp.startLonelyTimer();
+});
+
 require('./deploy')(commandData)
 	.then(() => {
 		client.login(token);

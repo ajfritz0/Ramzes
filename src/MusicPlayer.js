@@ -27,6 +27,7 @@ class MusicPlayer {
 		this.player = createAudioPlayer();
 		this.voiceChannelIdleTimer = null;
 		this.musicPlayerIdleTimer = null;
+		this.lonelyTimer = null;
 		this.stream = null;
 		this.playlist = new PlaylistManager();
 		this.isStopped = true;
@@ -205,7 +206,7 @@ class MusicPlayer {
 
 		conn.on('stateChange', (oldState, newState) => {
 			if (newState.status == 'destroyed') {
-				console.log('Voice Connection destroyed');
+				this.stop();
 			}
 		});
 		conn.subscribe(this.player);
@@ -218,7 +219,6 @@ class MusicPlayer {
 	}
 
 	destroy() {
-		this.stop();
 		const conn = getVoiceConnection(this.guildId);
 		if (conn) {
 			conn.destroy();
@@ -282,6 +282,16 @@ class MusicPlayer {
 			arr[i] = x;
 		}
 		this.playlist.playlist = arr;
+	}
+
+	startLonelyTimer() {
+		if (this.lonelyTimer) return;
+		this.lonelyTimer = setTimeout(() => this.destroy(), 5 * 60 * 1000);
+	}
+
+	stopLonelyTimer() {
+		clearTimeout(this.lonelyTimer);
+		this.lonelyTimer = null;
 	}
 }
 
