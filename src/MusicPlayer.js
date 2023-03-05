@@ -10,6 +10,7 @@ const {
 	createAudioResource,
 	joinVoiceChannel,
 	getVoiceConnection,
+	VoiceConnectionStatus,
 } = require('@discordjs/voice');
 
 const toTimeString = (seconds) => {
@@ -208,6 +209,20 @@ class MusicPlayer {
 			if (newState.status == 'destroyed') {
 				this.stop();
 			}
+
+			if (oldState.status === VoiceConnectionStatus.Ready && newState.status === VoiceConnectionStatus.Connecting) {
+				conn.configureNetworking();
+			}
+
+			const oldNetworking = Reflect.get(oldState, 'networking');
+			const newNetworking = Reflect.get(newState, 'networking');
+
+			const networkStateChangeHandler = (oldNetworkState, newNetworkState) => {
+				const newUdp = Reflect.get(newNetworkState, 'udp');
+				clearInterval(newUdp?.keepAliveInterval);
+			};
+			oldNetworking?.off('stateChange', networkStateChangeHandler);
+			newNetworking?.on('stateChange', networkStateChangeHandler);
 		});
 		conn.subscribe(this.player);
 		this.voiceChannelIdleTimer = setTimeout(() => this.destroy(), 5 * 60 * 1000);
