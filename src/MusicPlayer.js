@@ -77,7 +77,7 @@ class MusicPlayer {
 					this.playlist.addItem(trackItem);
 				}
 				else {
-					insertionIndex = this.playlist.readHead;
+					insertionIndex = this.playlist.readHead + 1;
 					this.playlist.playlist.splice(insertionIndex, 0, trackItem);
 				}
 			}
@@ -108,7 +108,7 @@ class MusicPlayer {
 						this.playlist.addItems(arr);
 					}
 					else {
-						insertionIndex = this.playlist.readHead;
+						insertionIndex = this.playlist.readHead + 1;
 						this.playlist.playlist.splice(insertionIndex, 0, ...arr);
 					}
 				}

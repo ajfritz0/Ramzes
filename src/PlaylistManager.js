@@ -1,7 +1,7 @@
 class PlaylistManager {
 	constructor() {
 		this.playlist = [];
-		this.readHead = 0;
+		this.readHead = -1;
 	}
 
 	addItem(item) {
@@ -21,11 +21,11 @@ class PlaylistManager {
 	clear() {
 		delete this.playlist;
 		this.playlist = [];
-		this.readHead = 0;
+		this.readHead = -1;
 	}
 
 	reset() {
-		this.readHead = 0;
+		this.readHead = -1;
 	}
 
 	isEmpty() {

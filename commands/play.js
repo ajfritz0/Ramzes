@@ -47,7 +47,7 @@ module.exports = {
 		const id = interaction.options.getInteger('id');
 
 		await interaction.deferReply();
-		// I want to rework this section as well as the validate file
+
 		if (authorVoiceState === undefined || authorVoiceState.channelId === null) {
 			return interaction.editReply({
 				content: 'You must be in a voice channel to use this function',
