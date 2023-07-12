@@ -1,7 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js');
 const ytsr = require('ytsr');
 
-// when playing a url, it shoudl add the track to the queue in place, rather than at the end
 module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('play')
@@ -67,11 +66,6 @@ module.exports = {
 				ephemeral: true,
 			});
 		}
-
-		// eventually make this dynamic, so the text channnel changes
-		// when commands are made from other text channels
-		if (interaction.channel.type == 'GUILD_VOICE') mp.textChannel = interaction.guild.systemChannel;
-		else mp.textChannel = interaction.channel;
 
 		if (subCommand == 'link') {
 			const index = await mp.add(url, false);

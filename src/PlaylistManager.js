@@ -29,11 +29,15 @@ class PlaylistManager {
 	}
 
 	isEmpty() {
-		return (this.playlist.length == 0);
+		return (this.size() == 0);
+	}
+
+	size() {
+		return this.playlist.length;
 	}
 
 	selectNext(bLoopback = false) {
-		if (this.playlist.length == 0) { return null; }
+		if (this.size() == 0) { return null; }
 		else if (this.readHead >= this.playlist.length - 1) {
 			if (bLoopback) {
 				this.readHead = -1;
@@ -53,7 +57,7 @@ class PlaylistManager {
 	}
 
 	selectTrack(index = null) {
-		if (index === null) return (this.isEmpty()) ? null : this.playlist[this.readHead];
+		if (index === null) return (this.isEmpty()) ? null : this.selectNext(true);
 		if (isNaN(index)) return null;
 		if (index > this.playlist.length - 1 || index < 0) return null;
 		this.readHead = index;

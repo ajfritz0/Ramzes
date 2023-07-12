@@ -49,7 +49,7 @@ module.exports = {
 					ephemeral: true,
 				});
 			}
-			return interaction.editReply(`${mp.playlist.playlist.length - index} track(s) added`);
+			return interaction.editReply(`${mp.playlist.size() - index} track(s) added`);
 		}
 		else {
 			try {

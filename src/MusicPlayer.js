@@ -256,10 +256,12 @@ class MusicPlayer {
 		return embed;
 	}
 
-	showUpcoming() {
+	showUpcoming(fromPos) {
+		const pSize = this.playlist.size();
 		const readHead = this.playlist.readHead;
-		const startPos = (readHead - 5 < 0) ? 0 : readHead - 5;
-		const truncatedTrackList = this.playlist.playlist.slice(startPos, readHead + 5);
+		const startPos = (fromPos != undefined && fromPos < pSize && fromPos > -1) ? fromPos : ((readHead - 5 < 0) ? 0 : readHead - 5);
+		const endPos = startPos + 10;
+		const truncatedTrackList = this.playlist.playlist.slice(startPos, endPos);
 		const maxTitleLength = 35;
 		const currentTrackTitle = this.playlist.playlist[readHead].title;
 
@@ -271,8 +273,8 @@ class MusicPlayer {
 			return prev + line + '\n';
 		}, '```md\n');
 
-		if (this.playlist.playlist.length > readHead + 5) {
-			return str + `...${this.playlist.playlist.length - (readHead + 5)} more` + '```';
+		if (pSize > endPos) {
+			return str + `...${pSize - endPos} more` + '```';
 		}
 		else {
 			return str.trim() + '```';

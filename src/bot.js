@@ -27,6 +27,9 @@ client.on(Events.InteractionCreate, async interaction => {
 
 	const command = client.commands.get(interaction.commandName);
 
+	if (client.mp.textChannel == null && interaction.channel.type == 'GUILD_VOICE') client.mp.textChannel = interaction.guild.systemChannel;
+	else client.mp.textChannel = interaction.channel;
+
 	const start = (new Date()).getTime();
 	try {
 		if (command.voiceChannelRequired) {
