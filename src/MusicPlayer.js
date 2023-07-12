@@ -59,27 +59,19 @@ class MusicPlayer {
 
 	async add(url, bAppend = true) {
 		let insertionIndex = -1;
+		const videos = [];
 		if (ytdl.validateURL(url)) {
 			try {
 				const videoDetails = (await ytdl.getBasicInfo(url)).videoDetails;
 
-				const trackItem = {
+				videos.push({
 					title: videoDetails.title,
 					duration: parseInt(videoDetails.lengthSeconds),
 					video_url: videoDetails.video_url,
 					author_name: videoDetails.author.name,
 					author_channel: videoDetails.author.channel_url,
 					thumbnail: videoDetails.author.thumbnails[0].url,
-				};
-
-				if (bAppend) {
-					insertionIndex = this.playlist.playlist.length;
-					this.playlist.addItem(trackItem);
-				}
-				else {
-					insertionIndex = this.playlist.readHead + 1;
-					this.playlist.playlist.splice(insertionIndex, 0, trackItem);
-				}
+				});
 			}
 			catch (error) {
 				console.error(error);
@@ -89,10 +81,9 @@ class MusicPlayer {
 		else if (ytpl.validateID(url)) {
 			try {
 				const playlistDetails = await ytpl(url, { pages: 10 });
-				const arr = [];
 
 				playlistDetails.items.forEach((video) => {
-					arr.push({
+					videos.push({
 						title: video.title,
 						duration: video.durationSec,
 						video_url: video.shortUrl,
@@ -101,20 +92,20 @@ class MusicPlayer {
 						thumbnail: video?.bestThumbnail?.url,
 					});
 				});
-
-				if (arr.length > 0) {
-					if (bAppend) {
-						insertionIndex = this.playlist.playlist.length;
-						this.playlist.addItems(arr);
-					}
-					else {
-						insertionIndex = this.playlist.readHead + 1;
-						this.playlist.playlist.splice(insertionIndex, 0, ...arr);
-					}
-				}
 			}
 			catch (error) {
 				console.error(error);
+			}
+		}
+
+		if (videos.length > 0) {
+			if (bAppend) {
+				insertionIndex = this.playlist.playlist.length;
+				this.playlist.addItems(videos);
+			}
+			else {
+				insertionIndex = this.playlist.readHead + 1;
+				this.playlist.playlist.splice(insertionIndex, 0, ...videos);
 			}
 		}
 		return insertionIndex;
