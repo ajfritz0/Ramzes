@@ -2,6 +2,7 @@ const ytdl = require('ytdl-core');
 const PlaylistManager = require('./PlaylistManager');
 const ytpl = require('ytpl');
 const { EmbedBuilder } = require('discord.js');
+const logger = require('../src/Logger');
 
 const {
 	AudioPlayerStatus,
@@ -54,7 +55,9 @@ class MusicPlayer {
 			if (this.musicPlayerIdleTimer !== null) clearTimeout(this.musicPlayerIdleTimer);
 		});
 
-		this.player.on('error', console.error);
+		this.player.on('error', error => {
+			logger.error(error.message);
+		});
 	}
 
 	async add(url, bAppend = true) {
@@ -94,7 +97,7 @@ class MusicPlayer {
 				});
 			}
 			catch (error) {
-				console.error(error);
+				logger.error(error.message);
 			}
 		}
 
@@ -215,12 +218,19 @@ class MusicPlayer {
 			oldNetworking?.off('stateChange', networkStateChangeHandler);
 			newNetworking?.on('stateChange', networkStateChangeHandler);
 		});
+		conn.on('error', error => {
+			logger.error(error.message);
+		});
 		conn.subscribe(this.player);
 		this.voiceChannelIdleTimer = setTimeout(() => this.destroy(), 5 * 60 * 1000);
 	}
 
 	createStream(url) {
 		this.stream = ytdl(url, { filter: 'audioonly', highWaterMark: 1 << 25, liveBuffer: 4900 });
+		this.stream.on('error', error => {
+			logger.error(`Failed to download audio from url ${url}`);
+			logger.error(error.message);
+		});
 		return createAudioResource(this.stream, { inputType: StreamType.Arbitrary });
 	}
 
@@ -263,7 +273,7 @@ class MusicPlayer {
 		const endPos = startPos + 10;
 		const truncatedTrackList = this.playlist.playlist.slice(startPos, endPos);
 		const maxTitleLength = 35;
-		const currentTrackTitle = this.playlist.playlist[readHead].title;
+		const currentTrackTitle = this.playlist.playlist[readHead]?.title;
 
 		const str = truncatedTrackList.reduce((prev, curr, idx) => {
 			const title = (curr.title.length < maxTitleLength) ? curr.title : curr.title.slice(0, maxTitleLength - 3) + '...';

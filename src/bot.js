@@ -3,6 +3,7 @@ const { token } = require('../config/config.json');
 const fs = require('fs');
 const MusicPlayer = require('./MusicPlayer');
 const validate = require('./validateMemberVoiceState');
+const logger = require('./Logger');
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates] });
 
@@ -12,14 +13,14 @@ const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('
 const commandData = [];
 
 for (const file of commandFiles) {
-	console.log(`Loading Module ${file}`);
+	logger.info(`Loading Module ${file}`);
 	const command = require(`../commands/${file}`);
 	client.commands.set(command.data.name, command);
 	commandData.push(command.data);
 }
 
 client.once(Events.ClientReady, () => {
-	console.log('Ready!');
+	logger.info('Ready!');
 });
 
 client.on(Events.InteractionCreate, async interaction => {
@@ -30,6 +31,7 @@ client.on(Events.InteractionCreate, async interaction => {
 	if (client.mp.textChannel == null && interaction.channel.type == 'GUILD_VOICE') client.mp.textChannel = interaction.guild.systemChannel;
 	else client.mp.textChannel = interaction.channel;
 
+	logger.info(`Interaction\n\tCommand: ${interaction.commandName} / User: ${interaction.user.username}\n\tChannel: ${interaction.channel.name} / Guild: ${interaction.guild.name}`);
 	const start = (new Date()).getTime();
 	try {
 		if (command.voiceChannelRequired) {
@@ -40,11 +42,12 @@ client.on(Events.InteractionCreate, async interaction => {
 		}
 	}
 	catch (error) {
-		console.error(error);
+		logger.error('Failed to execute slash command');
+		logger.error(error.message);
 		await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
 	}
 	const deltaTime = (new Date()).getTime() - start;
-	console.log(`Execution finished in ${deltaTime}ms`);
+	logger.info(`Execution finished in ${deltaTime}ms`);
 });
 
 client.on(Events.VoiceStateUpdate, (oldState, newState) => {
