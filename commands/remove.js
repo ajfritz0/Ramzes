@@ -12,10 +12,10 @@ module.exports = {
 	voiceChannelRequired: true,
 	async execute(interaction) {
 		const mp = interaction.client.mp;
-		if (mp.isEmpty()) return interaction.reply({ content: 'There is no items in the play queue', ephemeral: true });
+		if (mp.isEmpty()) return 'There are no items in the queue';
 
 		const track = interaction.options.getInteger('track');
-		if (!mp.removeTrack(track)) return interaction.reply({ content: 'That track item does not exist', ephemeral: true });
-		return interaction.reply('Track Removed').then(() => setTimeout(() => interaction.deleteReply(), 5000)).catch(console.error);
+		if (!mp.removeTrack(track)) return 'That track item does not exist';
+		return 'Track Removed';
 	},
 };

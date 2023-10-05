@@ -1,4 +1,6 @@
-const time = () => (new Date()).toISOString();
+const time = () => {
+	return (new Date()).toLocaleString();
+};
 module.exports = {
 	warn: (msg) => {
 		console.log(`[${time()}][warn] ${msg}`);

@@ -9,8 +9,6 @@ module.exports = {
 		const mp = interaction.client.mp;
 		mp.stop();
 
-		return interaction.reply('Playback stopped')
-			.then(() => setTimeout(() => interaction.deleteReply(), 5000))
-			.catch(console.error);
+		return 'Playback stopped';
 	},
 };

@@ -16,23 +16,15 @@ module.exports = {
 		if (trackNum == null || trackNum == undefined) {
 			const doesExist = mp.playNext();
 			if (!doesExist) {
-				return interaction.reply({
-					content: 'No track selected',
-					ephemeral: true,
-				});
+				return 'No track selected';
 			}
 		}
 		else {
 			const doesExist = mp.playTrack(trackNum);
 			if (!doesExist) {
-				return interaction.reply({
-					content: 'That track does not exist',
-					ephemeral: true,
-				});
+				return 'That track does not exist';
 			}
 		}
-		return interaction.reply('Playing next track')
-			.then(() => setTimeout(() => interaction.deleteReply(), 5000))
-			.catch(console.error);
+		return 'Playing next track';
 	},
 };

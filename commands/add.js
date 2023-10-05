@@ -39,52 +39,32 @@ module.exports = {
 		const mp = interaction.client.mp;
 		const subCommand = interaction.options.getSubcommand();
 
-		await interaction.deferReply();
-
 		if (subCommand == 'link') {
 			const index = await mp.add(url);
 			if (index == -1) {
-				return interaction.editReply({
-					content: 'The url provided was not valid',
-					ephemeral: true,
-				});
+				return 'The URL provided was not valid';
 			}
-			return interaction.editReply(`${mp.playlist.size() - index} track(s) added`);
+			return `${mp.playlist.size() - index} track(s) added`;
 		}
 		else {
-			try {
-				const searchResults = await ytsr(query, {
-					limit: 20,
-				});
-				const filteredResults = searchResults.items.filter(value => {
-					if (value.type != 'video' || value?.isLive) return false;
-					return true;
-				}).slice(0, 10);
+			const searchResults = await ytsr(query, {
+				limit: 20,
+			});
+			const filteredResults = searchResults.items.filter(value => {
+				if (value.type != 'video' || value?.isLive) return false;
+				return true;
+			}).slice(0, 10);
 
-				if (id && (id < 1 || id > 10)) {
-					return interaction.editReply({
-						content: 'The id provided is out of range',
-						ephemeral: true,
-					});
-				}
-				const trackSelected = (id) ? id - 1 : 0;
+			if (id && (id < 1 || id > 10)) {
+				return 'The id provided is out of range';
+			}
+			const trackSelected = (id) ? id - 1 : 0;
 
-				const index = await mp.add(filteredResults[trackSelected].url);
-				if (index == -1) {
-					return interaction.editReply({
-						content: 'There was an error while attempting to add the track from your query.\nPlease try again later',
-						ephemeral: true,
-					});
-				}
-				return interaction.editReply('Track added');
+			const index = await mp.add(filteredResults[trackSelected].url);
+			if (index == -1) {
+				return 'There was an error while attempting to add the track from your query.\nPlease try again later';
 			}
-			catch (error) {
-				console.error(error);
-				return interaction.editReply({
-					content: 'An unknown error has occurred.\nPlease try again later.',
-					ephemeral: true,
-				});
-			}
+			return 'Track added';
 		}
 	},
 };

@@ -7,10 +7,9 @@ module.exports = {
 	voiceChannelRequired: true,
 	async execute(interaction) {
 		const mp = interaction.client.mp;
-		mp.shuffle();
+		if (mp.isEmpty()) return 'There are no items in the queue';
 
-		return interaction.reply('Playlist has been shuffled')
-			.then(() => setTimeout(() => interaction.deleteReply(), 5000))
-			.catch(console.error);
+		mp.shuffle();
+		return 'Queue has been shuffled';
 	},
 };

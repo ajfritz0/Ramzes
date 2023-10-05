@@ -1,43 +1,33 @@
 const { SlashCommandBuilder } = require('discord.js');
+const { isVoiceConnected, isVoiceChannelShared } = require('../src/lib/validateMemberVoiceState');
 
 module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('connect')
 		.setDescription('Connect the bot to a voice channel'),
+	voiceChannelRequired: false,
 	async execute(interaction) {
 		const voiceStates = interaction.guild.voiceStates.cache;
 		const authorVoiceState = voiceStates.get(interaction.member.id);
 		const botVoiceState = voiceStates.get(interaction.client.user.id);
 		const mp = interaction.client.mp;
 
-		if (authorVoiceState == undefined || authorVoiceState.channelId == null) {
-			return interaction.reply({
-				content: 'You must be in a voice channel to use this function',
-				ephemeral: true,
-			});
+		if (!isVoiceConnected(authorVoiceState)) {
+			return 'You must be in a voice channel to use this function';
 		}
 
-		if ((botVoiceState == undefined || botVoiceState.channelId == null) || !mp.isPlaying()) {
-			if (botVoiceState && (authorVoiceState.channelId == botVoiceState.channelId)) {
-				return interaction.reply({
-					content: 'I am already connected to this voice channel',
-					ephemeral: true,
-				});
-			}
+		else if (!isVoiceConnected(botVoiceState) || !isVoiceChannelShared(authorVoiceState, botVoiceState)) {
+			if (authorVoiceState.channel.full) return 'Unable to join: voice channel is full';
 			mp.joinVC(
 				authorVoiceState.channelId,
 				interaction.guild.id,
 				interaction.guild.voiceAdapterCreator,
 			);
+			return `Moving to channel ${authorVoiceState.channel.name}`;
 		}
+
 		else {
-			return interaction.reply({
-				content: 'Cannot connect to a new voice channel while audio is playing',
-				ephemeral: true,
-			});
+			return 'I am already connected to this voice channel';
 		}
-		interaction.reply(`Moving to channel ${authorVoiceState.channel}`)
-			.then(() => setTimeout(() => interaction.deleteReply(), 5000))
-			.catch(console.error);
 	},
 };

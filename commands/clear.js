@@ -7,8 +7,6 @@ module.exports = {
 	voiceChannelRequired: true,
 	async execute(interaction) {
 		interaction.client.mp.clearPlaylist();
-		return interaction.reply('Playlist Cleared')
-			.then(() => setTimeout(() => interaction.deleteReply(), 5000))
-			.catch(console.error);
+		return 'Playlist cleared.';
 	},
 };
