@@ -6,7 +6,7 @@ module.exports = {
 		.setDescription('Pause playing audio'),
 	voiceChannelRequired: true,
 	async execute(interaction) {
-		if (interaction.mp.isPaused()) return 'Playback is already paused';
+		if (interaction.client.mp.isPaused()) return 'Playback is already paused';
 
 		interaction.client.mp.pause();
 		return 'Pausing Playback';
