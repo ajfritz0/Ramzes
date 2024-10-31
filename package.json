@@ -16,13 +16,12 @@
   },
   "dependencies": {
     "@discordjs/builders": "^1.6.3",
-    "@discordjs/opus": "^0.9.0",
     "@discordjs/rest": "^1.7.1",
     "@discordjs/voice": "^0.14.0",
+    "@distube/ytdl-core": "^4.15.1",
     "discord-api-types": "^0.37.48",
     "discord.js": "^14.11.0",
     "libsodium-wrappers": "^0.7.11",
-    "ytdl-core": "^4.11.4",
     "ytpl": "^2.3.0",
     "ytsr": "^3.8.2"
   }

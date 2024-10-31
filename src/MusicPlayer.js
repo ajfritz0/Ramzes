@@ -1,4 +1,4 @@
-const ytdl = require('ytdl-core');
+const ytdl = require('@distube/ytdl-core');
 const PlaylistManager = require('./PlaylistManager');
 const ytpl = require('ytpl');
 const logger = require('./lib/Logger');
